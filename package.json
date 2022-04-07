@@ -1,0 +1,14 @@
+{
+  "name": "eth-prokey-keyring",
+  "version": "1.0.0",
+  "description": "A MetaMask compatible keyring, for prokey hardware wallet",
+  "main": "index.js",
+  "repository": "https://github.com/prokey-io/eth-prokey-keyring.git",
+  "author": "Houman Sanati <houmansnt@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "ethereumjs-util": "^7.1.4",
+    "events": "^3.3.0",
+    "randombytes": "^2.1.0"
+  }
+}
