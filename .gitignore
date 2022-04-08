@@ -11,5 +11,6 @@ yarn-error.log*
 .AppleDouble
 .LSOverride
 
-# Yarn
+# Lock Files
+package-lock.json
 yarn.lock
