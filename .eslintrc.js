@@ -1,5 +1,6 @@
 module.exports = {
   root: true,
+  ignorePatterns: ['lib/**/*'],
   extends: ['@metamask/eslint-config', '@metamask/eslint-config-nodejs'],
   env: {
     commonjs: true,

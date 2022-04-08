@@ -1,0 +1,3 @@
+[submodule "lib/prokey-webcore"]
+	path = lib/prokey-webcore
+	url = https://github.com/prokey-io/prokey-webcore.git
