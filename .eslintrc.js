@@ -4,6 +4,7 @@ module.exports = {
   extends: ['@metamask/eslint-config', '@metamask/eslint-config-nodejs'],
   env: {
     commonjs: true,
+    browser: true,
   },
   overrides: [
     {
