@@ -4,7 +4,8 @@ const ethUtil = require('ethereumjs-util');
 const { TransactionFactory } = require('@ethereumjs/tx');
 const HDKey = require('hdkey');
 
-const PROKEY_LINK_URL = 'http://localhost:4200';
+const isProduction = false;
+const PROKEY_LINK_URL = isProduction ? '' : 'http://localhost:4200';
 
 const hdPathString = `m/44'/60'/0'/0`;
 const keyringType = 'Prokey Hardware';
@@ -12,22 +13,10 @@ const pathBase = 'm';
 const MAX_INDEX = 1000;
 const DELAY_BETWEEN_POPUPS = 2000;
 
-const {
-  concatSig,
-  decrypt,
-  getEncryptionPublicKey,
-  normalize,
-  personalSign,
-  signTypedData,
-  SignTypedDataVersion,
-} = require('@metamask/eth-sig-util');
-
 const CommandType = {
   GetEthereumPublicKey: 'GetEthereumPublicKey',
-  GetAddress: 'GetAddress',
   SignTransaction: 'SignTransaction',
   SignMessage: 'SignMessage',
-  GetAddresses: 'GetAddresses',
 };
 
 // eslint-disable-next-line jsdoc/require-jsdoc
@@ -82,33 +71,6 @@ class ProkeyKeyring extends EventEmitter {
 
   getPreviousPage() {
     return this.__getPage(-1);
-  }
-
-  // eslint-disable-next-line no-shadow
-  _addressFromIndex(pathBase, i) {
-    const dkey = this.hdKey.derive(`${pathBase}/${i}`);
-    const address = ethUtil
-      .publicToAddress(dkey.publicKey, true)
-      .toString('hex');
-    return ethUtil.toChecksumAddress(`0x${address}`);
-  }
-
-  _pathFromAddress(address) {
-    const checksummedAddress = ethUtil.toChecksumAddress(address);
-    let index = this.paths[checksummedAddress];
-    if (typeof index === 'undefined') {
-      for (let i = 0; i < MAX_INDEX; i++) {
-        if (checksummedAddress === this._addressFromIndex(pathBase, i)) {
-          index = i;
-          break;
-        }
-      }
-    }
-
-    if (typeof index === 'undefined') {
-      throw new Error('Unknown address');
-    }
-    return `${this.hdPath}/${index}`;
   }
 
   __getPage(increment) {
@@ -332,25 +294,48 @@ class ProkeyKeyring extends EventEmitter {
     }
   }
 
-  _normalize(buf) {
-    return ethUtil.bufferToHex(buf).toString();
-  }
-
-  // For eth_sign, we need to sign arbitrary data:
-  async signMessage(address, data, opts = {}) {
-    const message = ethUtil.stripHexPrefix(data);
-    const privKey = this._getPrivateKeyFor(address, opts);
-    const msgSig = ethUtil.ecsign(Buffer.from(message, 'hex'), privKey);
-    const rawMsgSig = concatSig(msgSig.v, msgSig.r, msgSig.s);
-    return rawMsgSig;
+  signMessage(withAccount, data) {
+    return this.signPersonalMessage(withAccount, data);
   }
 
   // For personal_sign, we need to prefix the message:
-  async signPersonalMessage(address, msgHex, opts = {}) {
-    const privKey = this._getPrivateKeyFor(address, opts);
-    const privateKey = Buffer.from(privKey, 'hex');
-    const sig = personalSign({ privateKey, data: msgHex });
-    return sig;
+  signPersonalMessage(withAccount, message) {
+    return new Promise((resolve, reject) => {
+      this.unlock()
+        .then((deviceStatus) => {
+          setTimeout(
+            (_) => {
+              this.runCommandOnProkeyLink(
+                {
+                  path: this._pathFromAddress(withAccount),
+                  message: this._hex2String(ethUtil.stripHexPrefix(message)),
+                },
+                CommandType.SignMessage,
+              )
+                .then((response) => {
+                  if (
+                    response.address !== ethUtil.toChecksumAddress(withAccount)
+                  ) {
+                    reject(
+                      new Error('signature doesnt match the right address'),
+                    );
+                  }
+                  const signature = `0x${response.signature}`;
+                  resolve(signature); // should have prefix
+                })
+                .catch((e) => {
+                  reject(new Error((e && e.toString()) || 'Unknown error'));
+                });
+              // This is necessary to avoid popup collision
+              // between the unlock & sign trezor popups
+            },
+            deviceStatus === 'just unlocked' ? DELAY_BETWEEN_POPUPS : 0,
+          );
+        })
+        .catch((e) => {
+          reject(new Error((e && e.toString()) || 'Unknown error'));
+        });
+    });
   }
 
   signTypedData() {
@@ -359,6 +344,48 @@ class ProkeyKeyring extends EventEmitter {
 
   exportAccount() {
     return Promise.reject(new Error('Not supported on this device'));
+  }
+
+  /* PRIVATE METHODS */
+
+  _normalize(buf) {
+    return ethUtil.bufferToHex(buf).toString();
+  }
+
+  // eslint-disable-next-line no-shadow
+  _addressFromIndex(pathBase, i) {
+    const dkey = this.hdKey.derive(`${pathBase}/${i}`);
+    const address = ethUtil
+      .publicToAddress(dkey.publicKey, true)
+      .toString('hex');
+    return ethUtil.toChecksumAddress(`0x${address}`);
+  }
+
+  _pathFromAddress(address) {
+    const checksummedAddress = ethUtil.toChecksumAddress(address);
+    let index = this.paths[checksummedAddress];
+    if (typeof index === 'undefined') {
+      for (let i = 0; i < MAX_INDEX; i++) {
+        if (checksummedAddress === this._addressFromIndex(pathBase, i)) {
+          index = i;
+          break;
+        }
+      }
+    }
+
+    if (typeof index === 'undefined') {
+      throw new Error('Unknown address');
+    }
+    return `${this.hdPath}/${index}`;
+  }
+
+  _hex2String(hexx) {
+    const hex = hexx.toString();
+    let str = '';
+    for (let i = 0; i < hex.length; i += 2) {
+      str += String.fromCharCode(parseInt(hex.substr(i, 2), 16));
+    }
+    return str;
   }
 }
 

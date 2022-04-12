@@ -1,6 +1,6 @@
 {
   "name": "eth-prokey-keyring",
-  "version": "1.0.0",
+  "version": "1.0.00",
   "description": "A MetaMask compatible keyring, for prokey hardware wallet",
   "keywords": [
     "prokey",
@@ -20,7 +20,6 @@
   "homepage": "https://github.com/prokey-io/eth-prokey-keyring#readme",
   "dependencies": {
     "@ethereumjs/tx": "^3.5.1",
-    "@metamask/eth-sig-util": "^4.0.0",
     "ethereumjs-util": "^7.1.4",
     "events": "^3.3.0",
     "hdkey": "^2.0.1",
