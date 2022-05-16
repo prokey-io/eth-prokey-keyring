@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 const { EventEmitter } = require('events');
 const ethUtil = require('ethereumjs-util');
 const { TransactionFactory } = require('@ethereumjs/tx');
@@ -22,6 +21,11 @@ const CommandType = {
 // eslint-disable-next-line jsdoc/require-jsdoc
 function wait(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// eslint-disable-next-line jsdoc/require-jsdoc
+function isOldStyleEthereumjsTx(tx) {
+  return typeof tx.getChainId === 'function';
 }
 
 class ProkeyKeyring extends EventEmitter {
@@ -199,11 +203,7 @@ class ProkeyKeyring extends EventEmitter {
 
   // tx is an instance of the ethereumjs-transaction class.
   signTransaction(address, tx) {
-    // transactions built with older versions of ethereumjs-tx have a
-    // getChainId method that newer versions do not. Older versions are mutable
-    // while newer versions default to being immutable. Expected shape and type
-    // of data for v, r and s differ (Buffer (old) vs BN (new))
-    if (typeof tx.getChainId === 'function') {
+    if (isOldStyleEthereumjsTx(tx)) {
       // In this version of ethereumjs-tx we must add the chainId in hex format
       // to the initial v value. The chainId must be included in the serialized
       // transaction which is only communicated to ethereumjs-tx in this
@@ -216,32 +216,17 @@ class ProkeyKeyring extends EventEmitter {
         return tx;
       });
     }
-    // For transactions created by newer versions of @ethereumjs/tx
-    // Note: https://github.com/ethereumjs/ethereumjs-monorepo/issues/1188
-    // It is not strictly necessary to do this additional setting of the v
-    // value. We should be able to get the correct v value in serialization
-    // if the above issue is resolved. Until then this must be set before
-    // calling .serialize(). Note we are creating a temporarily mutable object
-    // forfeiting the benefit of immutability until this happens. We do still
-    // return a Transaction that is frozen if the originally provided
-    // transaction was also frozen.
-    const unfrozenTx = TransactionFactory.fromTxData(tx.toJSON(), {
-      common: tx.common,
-      freeze: false,
-    });
-    unfrozenTx.v = new ethUtil.BN(
-      ethUtil.addHexPrefix(tx.common.chainId()),
-      'hex',
-    );
     return this._signTransaction(
       address,
       tx.common.chainIdBN().toNumber(),
-      unfrozenTx,
+      tx,
       (payload) => {
         // Because tx will be immutable, first get a plain javascript object that
         // represents the transaction. Using txData here as it aligns with the
         // nomenclature of ethereumjs/tx.
         const txData = tx.toJSON();
+        // The fromTxData utility expects a type to support transactions with a type other than 0
+        txData.type = tx.type;
         // The fromTxData utility expects v,r and s to be hex prefixed
         txData.v = ethUtil.addHexPrefix(payload.v);
         txData.r = ethUtil.addHexPrefix(payload.r);
@@ -259,20 +244,35 @@ class ProkeyKeyring extends EventEmitter {
 
   // tx is an instance of the ethereumjs-transaction class.
   async _signTransaction(address, chainId, tx, handleSigning) {
+    let transaction;
+    if (isOldStyleEthereumjsTx(tx)) {
+      // legacy transaction from ethereumjs-tx package has no .toJSON() function,
+      // so we need to convert to hex-strings manually manually
+      transaction = {
+        to: this._normalize(tx.to),
+        value: this._normalize(tx.value),
+        data: this._normalize(tx.data),
+        chainId,
+        nonce: this._normalize(tx.nonce),
+        gasLimit: this._normalize(tx.gasLimit),
+        gasPrice: this._normalize(tx.gasPrice),
+      };
+    } else {
+      // new-style transaction from @ethereumjs/tx package
+      // we can just copy tx.toJSON() for everything except chainId, which must be a number
+      transaction = {
+        ...tx.toJSON(),
+        chainId,
+        to: this._normalize(tx.to),
+      };
+    }
+
     try {
       const deviceStatus = await this.unlock();
       await wait(deviceStatus === 'just unlocked' ? DELAY_BETWEEN_POPUPS : 0);
       const txParams = {
         path: this._pathFromAddress(address),
-        transaction: {
-          to: this._normalize(tx.to),
-          value: this._normalize(tx.value),
-          gasPrice: this._normalize(tx.gasPrice),
-          gasLimit: this._normalize(tx.gasLimit),
-          nonce: this._normalize(tx.nonce),
-          data: this._normalize(tx.data),
-          chainId,
-        },
+        transaction,
       };
       const response = await this.runCommandOnProkeyLink(
         txParams,
