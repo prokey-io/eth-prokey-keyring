@@ -1,6 +1,6 @@
 module.exports = {
   root: true,
-  ignorePatterns: ['lib/**/*'],
+  ignorePatterns: ['lib/**/*', 'dist'],
   parserOptions: {
     ecmaVersion: 2018, // to support object rest spread, e.g. {...x, ...y}
   },
@@ -12,15 +12,7 @@ module.exports = {
   overrides: [
     {
       files: ['test/**/*.js'],
-      extends: ['@metamask/eslint-config-jest'],
+      extends: ['@metamask/eslint-config-mocha'],
     },
   ],
-  rules: {
-    camelcase: [
-      'error',
-      {
-        allow: ['signTypedData_v1', 'signTypedData_v3', 'signTypedData_v4'],
-      },
-    ],
-  },
 };
