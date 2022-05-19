@@ -77,38 +77,6 @@ class ProkeyKeyring extends EventEmitter {
     return this.__getPage(-1);
   }
 
-  __getPage(increment) {
-    this.page += increment;
-
-    if (this.page <= 0) {
-      this.page = 1;
-    }
-
-    return new Promise((resolve, reject) => {
-      this.unlock()
-        .then((_) => {
-          const from = (this.page - 1) * this.perPage;
-          const to = from + this.perPage;
-
-          const accounts = [];
-
-          for (let i = from; i < to; i++) {
-            const address = this._addressFromIndex(pathBase, i);
-            accounts.push({
-              address,
-              balance: null,
-              index: i,
-            });
-            this.paths[ethUtil.toChecksumAddress(address)] = i;
-          }
-          resolve(accounts);
-        })
-        .catch((e) => {
-          reject(e);
-        });
-    });
-  }
-
   isUnlocked() {
     return Boolean(this.hdKey && this.hdKey.publicKey);
   }
@@ -377,6 +345,38 @@ class ProkeyKeyring extends EventEmitter {
       throw new Error('Unknown address');
     }
     return `${this.hdPath}/${index}`;
+  }
+
+  __getPage(increment) {
+    this.page += increment;
+
+    if (this.page <= 0) {
+      this.page = 1;
+    }
+
+    return new Promise((resolve, reject) => {
+      this.unlock()
+        .then((_) => {
+          const from = (this.page - 1) * this.perPage;
+          const to = from + this.perPage;
+
+          const accounts = [];
+
+          for (let i = from; i < to; i++) {
+            const address = this._addressFromIndex(pathBase, i);
+            accounts.push({
+              address,
+              balance: null,
+              index: i,
+            });
+            this.paths[ethUtil.toChecksumAddress(address)] = i;
+          }
+          resolve(accounts);
+        })
+        .catch((e) => {
+          reject(e);
+        });
+    });
   }
 
   _hex2String(hexx) {
