@@ -3,8 +3,10 @@ const ethUtil = require('ethereumjs-util');
 const { TransactionFactory } = require('@ethereumjs/tx');
 const HDKey = require('hdkey');
 
-const isProduction = false;
-const PROKEY_LINK_URL = isProduction ? '' : 'http://localhost:4200';
+const isProduction = true;
+const PROKEY_LINK_URL = isProduction
+  ? 'https://link.prokey.io'
+  : 'http://localhost:4200';
 
 const hdPathString = `m/44'/60'/0'/0`;
 const keyringType = 'Prokey Hardware';
