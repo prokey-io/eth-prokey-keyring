@@ -1,0 +1,54 @@
+{
+  "name": "eth-prokey-keyring",
+  "version": "1.0.0",
+  "description": "A MetaMask compatible keyring, for prokey hardware wallet",
+  "keywords": [
+    "prokey",
+    "metamask",
+    "hdwallet",
+    "hardwarewallet",
+    "ethereum",
+    "keyring"
+  ],
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha --timeout 3000"
+  },
+  "repository": "https://github.com/prokey-io/eth-prokey-keyring.git",
+  "author": "Houman Sanati <houmansnt@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/prokey-io/eth-prokey-keyring/issues"
+  },
+  "homepage": "https://github.com/prokey-io/eth-prokey-keyring#readme",
+  "dependencies": {
+    "@ethereumjs/common": "^2.6.4",
+    "@ethereumjs/tx": "^3.5.1",
+    "ethereumjs-util": "^7.1.4",
+    "events": "^3.3.0",
+    "hdkey": "^2.0.1"
+  },
+  "devDependencies": {
+    "@metamask/eslint-config": "^9.0.0",
+    "@metamask/eslint-config-mocha": "^9.0.0",
+    "@metamask/eslint-config-nodejs": "^9.0.0",
+    "chai": "^4.3.6",
+    "chai-spies": "^1.0.0",
+    "eslint": "^7.23.0",
+    "eslint-config-prettier": "^8.1.0",
+    "eslint-plugin-import": "^2.22.1",
+    "eslint-plugin-jest": "^26.1.3",
+    "eslint-plugin-jsdoc": "^36.1.0",
+    "eslint-plugin-mocha": "^8.1.0",
+    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-prettier": "^3.3.1",
+    "ethereumjs-tx": "^2.1.2",
+    "jest": "^27.5.1",
+    "mocha": "^10.0.0",
+    "prettier": "^2.2.1",
+    "sinon": "^14.0.0"
+  },
+  "engines": {
+    "node": ">=12.0.0"
+  }
+}
